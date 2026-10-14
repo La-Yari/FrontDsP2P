@@ -1,0 +1,49 @@
+/* Tokens de diseño. Los mods pueden sobrescribirlos desde :root */
+:root {
+  /* Texto */
+  --color-text: #fff;
+  --color-text-muted: #aaa;
+  --color-text-label: #bbb;
+  --color-text-faint: #888;
+
+  /* Superficies */
+  --color-surface: #232733;
+  --color-surface-alt: #1f2430;
+  --color-surface-deep: #161922;
+  --color-surface-card: #2a2d3e;
+  --color-surface-chat: #1a1a1a;
+  --color-surface-voice-active: #1e3a2f;
+
+  /* Bordes */
+  --color-border: #3d4455;
+  --color-border-strong: #4a4d6e;
+  --color-border-chat: #444;
+
+  /* Acciones / estados */
+  --color-neutral: #383d52;
+  --color-secondary: #4a4d6e;
+  --color-success: #2e7d32;
+  --color-success-bright: #4caf50;
+  --color-success-soft: #81c784;
+  --color-info: #1976d2;
+  --color-info-soft: #64b5f6;
+  --color-danger: #d32f2f;
+  --color-danger-dark: #c62828;
+  --color-warning: #fbc02d;
+  --color-accent: #646cff;
+
+  /* Forma */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* Espaciado */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+
+  /* Layout */
+  --sidebar-width: 360px;
+}
