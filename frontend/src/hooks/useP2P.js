@@ -15,6 +15,13 @@ export function useP2P({ notify }) {
   const [peers, setPeers] = useState([]);
   const [nodeInfo, setNodeInfo] = useState({ code: '', multiAddr: '' });
 
+  // Mostrar el ID fijo desde el principio (sin esperar a iniciar el servidor)
+  useEffect(() => {
+    GetNodeInfo()
+      .then((info) => info && info.code && setNodeInfo(info))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const offConn = EventsOn('peer_connected', (msg) => {
       setPeers((prev) => (prev.includes(msg) ? prev : [...prev, msg]));
