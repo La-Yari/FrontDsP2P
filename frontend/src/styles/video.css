@@ -1,0 +1,72 @@
+/* ===== Videollamada (base). Los mods la sobreescriben desde video.css ===== */
+.video-stage {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  flex: 0 0 auto;
+  max-height: 45%;
+  overflow: auto;
+}
+
+/* Modo cuadrícula */
+.video-stage[data-mode="grid"] {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+/* Modo picture-in-picture: los demás grandes, tú pequeño en la esquina */
+.video-stage[data-mode="pip"] {
+  grid-template-columns: 1fr;
+}
+.video-stage[data-mode="pip"] .video-tile--self {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 120px;
+  z-index: 1;
+}
+
+.video-tile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #000;
+  border-radius: 12px;
+}
+.video-stage[data-shape="square"] .video-tile { border-radius: 0; }
+.video-stage[data-shape="circle"] .video-tile { border-radius: 50%; aspect-ratio: 1; }
+
+.video-tile video,
+.video-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Espejo solo en tu propia cámara */
+.video-stage[data-mirror="true"] .video-tile--self video { transform: scaleX(-1); }
+
+.video-tile__name {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 999px;
+}
+
+/* Selector de cámara (ocupa toda la fila) */
+.video-stage__camera {
+  grid-column: 1 / -1;
+  justify-self: start;
+  max-width: 100%;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: inherit;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+}

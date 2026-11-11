@@ -4,6 +4,7 @@ export { useProfile } from './useProfile';
 export { useP2P, STATUS } from './useP2P';
 export { useChat } from './useChat';
 export { useVoiceCall } from './useVoiceCall';
+export { useVideoCall } from './useVideoCall';
 export { useUsers } from './useUsers';
 export { useChannel } from './useChannel';
 export { useChannels } from './useChannels';

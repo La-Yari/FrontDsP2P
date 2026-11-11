@@ -50,6 +50,10 @@ export function LoadCustomLayout() {
   return window['go']['main']['App']['LoadCustomLayout']();
 }
 
+export function LoadCustomVideoCSS() {
+  return window['go']['main']['App']['LoadCustomVideoCSS']();
+}
+
 export function OpenModsFolder() {
   return window['go']['main']['App']['OpenModsFolder']();
 }
@@ -64,6 +68,10 @@ export function SendImageFromDialog() {
 
 export function SendMessage(arg1) {
   return window['go']['main']['App']['SendMessage'](arg1);
+}
+
+export function SendVideo(arg1) {
+  return window['go']['main']['App']['SendVideo'](arg1);
 }
 
 export function SetAudioPrefs(arg1, arg2) {

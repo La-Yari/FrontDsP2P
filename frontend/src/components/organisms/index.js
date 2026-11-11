@@ -2,6 +2,7 @@ export { AppHeader } from './AppHeader';
 export { SidebarBrand } from './SidebarBrand';
 export { SearchBox } from './SearchBox';
 export { VoicePanel } from './VoicePanel';
+export { VideoStage } from './VideoStage';
 export { ProfilePanel } from './ProfilePanel';
 export { InvitePanel } from './InvitePanel';
 export { ChatHistory } from './ChatHistory';

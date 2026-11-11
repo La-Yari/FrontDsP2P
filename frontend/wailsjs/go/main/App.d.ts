@@ -26,6 +26,8 @@ export function LoadCustomCSS():Promise<string>;
 
 export function LoadCustomLayout():Promise<main.ModLayout>;
 
+export function LoadCustomVideoCSS():Promise<string>;
+
 export function OpenModsFolder():Promise<string>;
 
 export function SendAudio(arg1:string):Promise<string>;
@@ -33,6 +35,8 @@ export function SendAudio(arg1:string):Promise<string>;
 export function SendImageFromDialog():Promise<string>;
 
 export function SendMessage(arg1:string):Promise<string>;
+
+export function SendVideo(arg1:string):Promise<string>;
 
 export function SetAudioPrefs(arg1:number,arg2:number):Promise<void>;
 

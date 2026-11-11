@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useToast, useMods, useProfile, useP2P, useChat, useVoiceCall, useUsers, useChannel, useChannels } from '../hooks';
+import { useToast, useMods, useProfile, useP2P, useChat, useVoiceCall, useVideoCall, useUsers, useChannel, useChannels } from '../hooks';
 import { STATUS } from '../hooks/useP2P';
 import { SetChannelIconFromDialog } from '../../wailsjs/go/main/App';
 import { Toast } from '../components/atoms';
@@ -8,6 +8,7 @@ import {
   SidebarBrand,
   SearchBox,
   VoicePanel,
+  VideoStage,
   UsersPanel,
   ChannelsPanel,
   InvitePanel,
@@ -24,6 +25,7 @@ export default function ChatPage() {
   const p2p = useP2P({ notify });
   const chat = useChat({ notify });
   const call = useVoiceCall({ notify });
+  const video = useVideoCall({ notify });
   const users = useUsers();
   const { channel, save: saveChannel } = useChannel();
   const channels = useChannels({
@@ -96,6 +98,7 @@ export default function ChatPage() {
         voice={
           <VoicePanel
             call={call}
+            video={video}
             channelName={channel?.nombre || 'Chat P2P'}
             speakerName={peers.length === 1 ? peers[0].name : ''}
             onOpenSettings={() => setSettingsOpen(true)}
@@ -114,6 +117,7 @@ export default function ChatPage() {
         }
         chat={
           <>
+            <VideoStage video={video} selfName={selfName} cfg={mods.layout.video} />
             <ChatHistory
               messages={chat.messages}
               avatars={users.avatarByName}

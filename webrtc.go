@@ -33,6 +33,7 @@ type PeerSession struct {
 	pc  *webrtc.PeerConnection
 	dc  *webrtc.DataChannel // texto: fiable y ordenado
 	dca *webrtc.DataChannel // audio: no fiable, sin orden (baja latencia)
+	dcv *webrtc.DataChannel // video: no fiable, sin orden (frames JPEG)
 }
 
 func generateRoomCode() string {
@@ -252,8 +253,17 @@ func (a *App) setupDataChannel(remoteID string, dc *webrtc.DataChannel) {
 					continue
 				}
 				ch := session.dc
-				if pkt.Type == "audio" && session.dca != nil && session.dca.ReadyState() == webrtc.DataChannelStateOpen {
-					ch = session.dca
+				switch pkt.Type {
+				case "audio":
+					if session.dca != nil && session.dca.ReadyState() == webrtc.DataChannelStateOpen {
+						ch = session.dca
+					}
+				case "video":
+					// El video solo viaja por su canal; nunca cae al chat (lo saturaría)
+					ch = nil
+					if session.dcv != nil && session.dcv.ReadyState() == webrtc.DataChannelStateOpen {
+						ch = session.dcv
+					}
 				}
 				if ch != nil && ch.ReadyState() == webrtc.DataChannelStateOpen {
 					_ = ch.SendText(string(msg.Data))
@@ -376,6 +386,9 @@ func (a *App) handlePacket(remoteID string, pkt Packet) {
 	switch pkt.Type {
 	case "audio":
 		runtime.EventsEmit(a.ctx, "receive_audio", pkt.Audio)
+
+	case "video":
+		runtime.EventsEmit(a.ctx, "receive_video", pkt.Sender, pkt.Video)
 
 	case "hello":
 		if code == a.myCode {
@@ -511,9 +524,12 @@ func (a *App) handleIncomingOffer(fromPeerID, offerB64 string) {
 	a.mu.Unlock()
 
 	pc.OnDataChannel(func(dc *webrtc.DataChannel) {
-		if dc.Label() == "audio" {
+		switch dc.Label() {
+		case "audio":
 			session.dca = dc
-		} else {
+		case "video":
+			session.dcv = dc
+		default:
 			session.dc = dc
 		}
 		a.setupDataChannel(fromPeerID, dc)
@@ -582,7 +598,8 @@ func (a *App) handleIncomingAnswer(fromPeerID, answerB64 string) {
 // se quedan en un pool ocioso; cuando Vercel cierra una de esas conexiones,
 // Go la reutiliza para enviar la señal y el edge responde con un
 // "400 Bad Request" sobre un canal que ya está inactivo, provocando el error
-//     Unsolicited response received on idle HTTP channel
+//
+//	Unsolicited response received on idle HTTP channel
 //
 // Además valida el código de respuesta (antes se ignoraba: un 400 se
 // tomaba por éxito y la app se quedaba esperando una conexión imposible)
@@ -731,6 +748,17 @@ func (a *App) ConnectToPeer(input string) string {
 	}
 	session.dca = dca
 
+	// Canal de video: igual que el de audio (mejor perder un frame que esperarlo)
+	dcv, err := pc.CreateDataChannel("video", &webrtc.DataChannelInit{
+		MaxRetransmits: &maxRetransmits,
+		Ordered:        &unordered,
+	})
+	if err != nil {
+		_ = pc.Close()
+		return fmt.Sprintf("Error creando canal de video: %s", err.Error())
+	}
+	session.dcv = dcv
+
 	a.mu.Lock()
 	if old, exists := a.peers[target]; exists {
 		if old.pc != nil {
@@ -742,6 +770,7 @@ func (a *App) ConnectToPeer(input string) string {
 
 	a.setupDataChannel(target, dc)
 	a.setupDataChannel(target, dca)
+	a.setupDataChannel(target, dcv)
 
 	pc.OnICEConnectionStateChange(func(state webrtc.ICEConnectionState) {
 		if state == webrtc.ICEConnectionStateDisconnected || state == webrtc.ICEConnectionStateFailed || state == webrtc.ICEConnectionStateClosed {

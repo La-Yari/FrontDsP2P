@@ -25,6 +25,8 @@
         <string>{{.Info.Copyright}}</string>
         <key>NSMicrophoneUsageDescription</key>
         <string>Se requiere acceso al micrófono para el chat de voz en tiempo real.</string>
+        <key>NSCameraUsageDescription</key>
+        <string>Se requiere acceso a la cámara para las videollamadas.</string>
         {{if .Info.FileAssociations}}
         <key>CFBundleDocumentTypes</key>
         <array>

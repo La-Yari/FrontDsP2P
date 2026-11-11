@@ -25,7 +25,7 @@ type Message struct {
 }
 
 type Packet struct {
-	Type    string `json:"type"` // "text", "audio", "hello", "avatar", "bye", "image", "history_req", "history", "roster", "channel"
+	Type    string `json:"type"` // "text", "audio", "hello", "avatar", "bye", "image", "video", "history_req", "history", "roster", "channel"
 	Sender  string `json:"sender"`
 	Text    string `json:"text,omitempty"`
 	Audio   string `json:"audio,omitempty"`   // base64 encoded PCM chunk
@@ -35,6 +35,7 @@ type Packet struct {
 	History string `json:"history,omitempty"` // JSON con mensajes para sincronizar
 	Online  bool   `json:"online,omitempty"`  // roster: si el miembro está activo
 	Channel string `json:"channel,omitempty"` // JSON con ChannelInfo (solo el host)
+	Video   string `json:"video,omitempty"`   // frame JPEG en base64 (videollamada)
 }
 
 // ChannelInfo es la identidad del canal que muestra el header
