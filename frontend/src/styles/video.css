@@ -1,35 +1,173 @@
-/* ===== Estilo Discord: pantalla compartida grande + tira de participantes ===== */
-.video-stage:has(.video-tile--screen, .video-tile--screen-self) {
+/* ===== Videollamada. Los mods la sobreescriben desde su propio video.css ===== */
+
+.main-layout__chat { position: relative; }
+
+.video-stage {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  flex: 0 0 auto;
+  max-height: 45%;
+  overflow: auto;
+}
+
+/* Modo cuadrícula */
+.video-stage[data-mode="grid"] {
+  grid-template-columns: repeat(auto-fill, 200px);
+  justify-content: start;
+}
+
+/* Modo picture-in-picture: los demás grandes, tú pequeño en la esquina */
+.video-stage[data-mode="pip"] { grid-template-columns: 1fr; }
+.video-stage[data-mode="pip"] .video-tile--self {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 120px;
+  z-index: 1;
+}
+
+.video-tile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #000;
+  border-radius: 14px;
+}
+.video-stage[data-shape="square"] .video-tile { border-radius: 0; }
+.video-stage[data-shape="circle"]:not([data-focus="true"]) .video-tile { border-radius: 50%; aspect-ratio: 1; }
+
+.video-tile video,
+.video-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.video-stage[data-mirror="true"] .video-tile--self video { transform: scaleX(-1); }
+
+.video-tile--avatar {
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-card, #121c27);
+}
+
+.video-tile__name {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  z-index: 2;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 999px;
+}
+
+.video-stage .video-stage__camera {
+  grid-column: 1 / -1;
+  justify-self: start;
+  width: auto;
+  min-width: 240px;
+  max-width: min(100%, 340px);
+}
+
+/* ---------- Tarjeta de transmisión (estilo Discord) ----------
+   Usa clases propias (.screen-*): los mods de cámara no la afectan. */
+.screen-card {
+  position: relative;
+  grid-column: span 2;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.screen-card:hover { transform: translateY(-2px); }
+.screen-card img,
+.screen-card video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+.screen-card__name {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  z-index: 2;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 999px;
+}
+
+.screen-card__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  align-content: flex-start;
+  gap: 10px;
+  background: rgba(10, 6, 20, 0.6);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.screen-card:hover .screen-card__overlay,
+.screen-card:focus-visible .screen-card__overlay { opacity: 1; }
+.screen-card__watch {
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--color-accent, #45c4e0);
+  color: #04121a;
+  border-radius: 10px;
+}
+.screen-card__stop {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-danger, #e0485a);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.screen-card__stop:hover { background: var(--color-danger-dark, #c13a4b); }
+
+/* ---------- Vista ampliada: transmisión grande + tira ---------- */
+.video-stage[data-focus="true"] {
+  display: flex;
+  flex-direction: column;
+  max-height: none;
+  overflow: visible;
   gap: 10px;
   padding: 12px;
-  max-height: none;          /* anula el 45% de la base */
-  overflow: visible;
 }
 
-/* Escenario principal */
-.video-stage .video-tile--screen {
-  flex: 1 1 100%;
-  width: 100%;
+.screen-main {
+  position: relative;
+  width: min(100%, calc(55vh * 16 / 9));
   aspect-ratio: 16 / 9;
-  max-height: 55vh;
+  margin-inline: auto;
+  overflow: hidden;
   background: #000;
   border-radius: 12px;
+  cursor: default;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 30px rgba(0, 0, 0, 0.5);
 }
-.video-stage .video-tile--screen img,
-.video-stage .video-tile--screen video {
+.screen-main > video,
+.screen-main > img {
+  width: 100%;
+  height: 100%;
   object-fit: contain;       /* nunca recorta la pantalla */
+  display: block;
   background: #000;
-  transform: none !important;
+  transform: none !important; /* sin espejo */
 }
 
-/* Insignia EN VIVO */
-.video-stage .video-tile--screen::before {
-  content: "● EN VIVO";
+.screen-main__live {
   position: absolute;
   top: 12px;
   left: 12px;
@@ -42,46 +180,123 @@
   background: #ed4245;
   border-radius: 6px;
 }
-
-/* Nombre más visible sobre la pantalla */
-.video-stage .video-tile--screen .video-tile__name {
-  left: 12px;
-  bottom: 12px;
-  padding: 4px 10px;
-  font-size: 13px;
-  background: rgba(0, 0, 0, 0.7);
-}
-
-/* Tu propia transmisión (placeholder con botón) como barra Discord */
-.video-stage .video-tile--screen-self {
-  flex: 1 1 100%;
-  flex-direction: row;
-  justify-content: center;
-  gap: 14px;
-  min-height: 64px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(237, 66, 69, 0.4);
-}
-.video-stage .video-tile--screen-self::before {
-  content: "● EN VIVO";
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+.screen-main__close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 4;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
   color: #fff;
-  background: #ed4245;
-  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.screen-main__close:hover { background: var(--color-danger, #e0485a); }
+
+.screen-main__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 28px 14px 12px;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78), transparent);
+  opacity: 0;
+  transition: opacity 0.15s;
+  cursor: default;
+}
+.screen-main:hover .screen-main__bar { opacity: 1; }
+.screen-main__title { font-size: 13px; font-weight: 600; }
+.screen-main__actions { display: flex; gap: 8px; }
+.screen-main__btn {
+  min-width: 36px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 15px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.screen-main__btn:hover { background: rgba(255, 255, 255, 0.28); }
+.screen-main__btn--stop { font-size: 13px; font-weight: 600; background: var(--color-danger, #e0485a); }
+.screen-main__btn--stop:hover { background: var(--color-danger-dark, #c13a4b); }
+
+.screen-main:fullscreen {
+  width: 100vw;
+  max-height: none;
+  aspect-ratio: auto;
+  border-radius: 0;
+  cursor: default;
 }
 
-/* Participantes: tira de miniaturas debajo */
-.video-stage:has(.video-tile--screen, .video-tile--screen-self) .video-tile:not(.video-tile--screen):not(.video-tile--screen-self) {
+/* Tira de miniaturas */
+.video-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 8px;
+}
+.video-strip .video-tile {
   flex: 0 0 160px;
   width: 160px;
   aspect-ratio: 16 / 9;
   border-radius: 10px;
 }
-.video-stage:has(.video-tile--screen, .video-tile--screen-self) .video-stage__camera {
-  flex: 1 1 100%;
-  order: 3;
+.screen-thumb {
+  position: relative;
+  flex: 0 0 160px;
+  width: 160px;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  cursor: pointer;
 }
+.screen-thumb img,
+.screen-thumb video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.screen-thumb:hover { outline: 2px solid var(--color-accent, #45c4e0); }
+.screen-card__live {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: #ed4245;
+  border-radius: 4px;
+}
+
+/* ---------- Modo ampliado: cubre toda el área del chat ---------- */
+.video-stage[data-theater="true"] {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  height: 100%;
+  padding: 16px;
+  background: var(--color-surface-chat, #0a1017);
+}
+.video-stage[data-theater="true"] .screen-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  aspect-ratio: auto;
+  cursor: default;
+}
+.video-stage[data-theater="true"] .video-strip { flex: 0 0 auto; }

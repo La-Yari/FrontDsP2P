@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { SendVideo } from '../../wailsjs/go/main/App';
+import { WindowShow, WindowUnminimise, WindowSetAlwaysOnTop } from '../../wailsjs/runtime/runtime';
 import { startFrameLoop } from '../utils/frameLoop';
 
 // La pantalla necesita más resolución que la cámara para leerse, pero menos fps.
@@ -7,6 +8,19 @@ const W = 960;
 const H = 540;
 const FPS = 5;
 const QUALITY = 0.6;
+
+// Al elegir qué compartir, Windows suele dar el foco a la ventana elegida.
+// Traemos octopus al frente para ver la transmisión sin salir de la app.
+function bringToFront() {
+  try {
+    WindowUnminimise();
+    WindowShow();
+    WindowSetAlwaysOnTop(true);
+    setTimeout(() => WindowSetAlwaysOnTop(false), 400);
+  } catch {
+    /* fuera de Wails: se ignora */
+  }
+}
 
 function explainError(err) {
   switch (err?.name) {
@@ -53,6 +67,7 @@ export function useScreenShare({ notify }) {
       streamRef.current = media;
       setStream(media);
       setOn(true);
+      bringToFront();
 
       // El botón "Dejar de compartir" del sistema también debe apagar todo
       media.getVideoTracks()[0]?.addEventListener('ended', stop);
