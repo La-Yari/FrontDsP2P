@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import {
@@ -764,3 +765,11 @@ function App() {
 }
 
 export default App;
+=======
+import './styles/index.css';
+import ChatPage from './pages/ChatPage';
+
+export default function App() {
+  return <ChatPage />;
+}
+>>>>>>> e2d0188274fd4d40619c65288ea252ff9b10d8b8

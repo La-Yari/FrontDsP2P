@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 (muy notorio que está echo con IA (al menos para comenzar))
 
 # 🚀 Manual de Desarrollo y Supervivencia — Chat P2P (Wails + Go + React)
@@ -345,3 +346,7 @@ chmod +x build/bin/chat
 Causa: Faltan las librerías de desarrollo de GTK3 o WebKit en el sistema.
 
 Solución: Revisa el paso 1 e instala libgtk-3-dev y libwebkit2gtk-4.0-dev (o sus equivalentes en tu distro).
+=======
+# FrontDsP2P
+Los Front de la secta del dios Crangrejo
+>>>>>>> e2d0188274fd4d40619c65288ea252ff9b10d8b8
