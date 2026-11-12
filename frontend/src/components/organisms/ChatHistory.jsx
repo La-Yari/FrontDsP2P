@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Button } from '../atoms';
 import { ChatMessage, DayDivider } from '../molecules';
 import { parseMsgTime, formatClock, formatDayLabel, dayKey } from '../../utils/time';
@@ -41,21 +41,34 @@ function buildBlocks(messages) {
       };
       blocks.push(group);
     }
-    group.items.push({ text: m.text, image: m.image });
+    group.items.push({ id: m.id, text: m.text, image: m.image, replyTo: m.replyTo, reactions: m.reactions });
     if (date) group.lastDate = date;
   });
 
   return blocks;
 }
 
-export function ChatHistory({ messages, avatars = {}, selfName, serverStarted, onStart }) {
+export function ChatHistory({ messages, avatars = {}, selfName, serverStarted, onStart, onReply, onReact }) {
   const endRef = useRef(null);
   const blocks = useMemo(() => buildBlocks(messages), [messages]);
 
-  // Autoscroll al último mensaje
+  // Para mostrar la cita de una respuesta
+  const byId = useMemo(() => new Map(messages.filter((m) => m.id).map((m) => [m.id, m])), [messages]);
+  const getMessage = useCallback((id) => byId.get(id), [byId]);
+
+  // Saltar al mensaje citado y resaltarlo un momento
+  const jumpTo = useCallback((id) => {
+    const el = document.getElementById(`msg-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.add('is-flash');
+    setTimeout(() => el.classList.remove('is-flash'), 1400);
+  }, []);
+
+  // Autoscroll solo cuando llegan mensajes nuevos (no al reaccionar a uno antiguo)
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
-  }, [messages]);
+  }, [messages.length]);
 
   return (
     <div className="chat-history">
@@ -85,6 +98,11 @@ export function ChatHistory({ messages, avatars = {}, selfName, serverStarted, o
                 time={b.time}
                 avatar={avatars[b.sender]}
                 items={b.items}
+                selfName={selfName}
+                getMessage={getMessage}
+                onReply={onReply}
+                onReact={onReact}
+                onJump={jumpTo}
               />
             )
           )

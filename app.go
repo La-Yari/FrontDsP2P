@@ -17,11 +17,14 @@ import (
 const VERCEL_URL = "https://server-chat-vercel.vercel.app/api"
 
 type Message struct {
-	Sender string `json:"sender"`
-	Text   string `json:"text"`
-	Kind   string `json:"kind"`            // "text" o "image"
-	Image  string `json:"image,omitempty"` // data URL (solo kind=image)
-	Time   string `json:"time,omitempty"`
+	Sender    string              `json:"sender"`
+	Text      string              `json:"text"`
+	Kind      string              `json:"kind"`            // "text" o "image"
+	Image     string              `json:"image,omitempty"` // data URL (solo kind=image)
+	Time      string              `json:"time,omitempty"`
+	ID        string              `json:"id,omitempty"`
+	ReplyTo   string              `json:"replyTo,omitempty"`
+	Reactions map[string][]string `json:"reactions,omitempty"`
 }
 
 type Packet struct {
@@ -36,6 +39,11 @@ type Packet struct {
 	Online  bool   `json:"online,omitempty"`  // roster: si el miembro está activo
 	Channel string `json:"channel,omitempty"` // JSON con ChannelInfo (solo el host)
 	Video   string `json:"video,omitempty"`   // frame JPEG en base64 (videollamada)
+	Kind    string `json:"kind,omitempty"`    // video: "cam" (por defecto) o "screen"
+	MsgID   string `json:"msgId,omitempty"`   // text/image/reaction: uid del mensaje
+	ReplyTo string `json:"replyTo,omitempty"` // text/image: uid del mensaje respondido
+	Emoji   string `json:"emoji,omitempty"`   // reaction
+	Add     bool   `json:"add,omitempty"`
 }
 
 // ChannelInfo es la identidad del canal que muestra el header
@@ -70,6 +78,10 @@ type App struct {
 	stopPoll         chan struct{}
 	db               *sql.DB
 	mu               sync.Mutex
+	inCall           bool
+	callSet          map[string]bool
+	unread           int
+	notifyReady      bool
 }
 
 func NewApp() *App {
@@ -77,6 +89,7 @@ func NewApp() *App {
 		username:  "Anónimo",
 		peers:     make(map[string]*PeerSession),
 		onlineSet: make(map[string]bool),
+		callSet:   make(map[string]bool),
 	}
 }
 
@@ -119,7 +132,7 @@ func (a *App) GetUsername() string {
 	return a.username
 }
 
-func (a *App) SendMessage(text string) string {
+func (a *App) SendMessage(text, replyTo string) string {
 	a.mu.Lock()
 	currentUser := a.username
 	sessions := make([]*PeerSession, 0, len(a.peers))
@@ -132,11 +145,14 @@ func (a *App) SendMessage(text string) string {
 		return "Error: No hay ningún peer conectado actualmente"
 	}
 
+	msgID := newMsgID()
 	pkt := Packet{
-		Type:   "text",
-		Sender: currentUser,
-		Text:   text,
-		Code:   a.myCode,
+		Type:    "text",
+		Sender:  currentUser,
+		Text:    text,
+		Code:    a.myCode,
+		MsgID:   msgID,
+		ReplyTo: replyTo,
 	}
 
 	data, err := json.Marshal(pkt)
@@ -154,8 +170,8 @@ func (a *App) SendMessage(text string) string {
 	}
 
 	if sent > 0 {
-		a.saveMessage(currentUser, text)
-		runtime.EventsEmit(a.ctx, "receive_message", Message{Sender: currentUser, Text: text})
+		a.saveMessageFull(currentUser, text, "text", "", msgID, replyTo)
+		runtime.EventsEmit(a.ctx, "receive_message", Message{Sender: currentUser, Text: text, ID: msgID, ReplyTo: replyTo})
 		return "Enviado"
 	}
 

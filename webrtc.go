@@ -227,6 +227,8 @@ func (a *App) setupDataChannel(remoteID string, dc *webrtc.DataChannel) {
 			// Presentarle también los demás usuarios conocidos (topología
 			// estrella: los clientes no se hablan directo entre ellos)
 			a.sendKnownPeersTo(dc)
+			// Decirle si estoy en la llamada de voz
+			a.sendCallStateTo(dc)
 			// Sincronizar historiales: ambos lados piden y responden
 			if raw, err := json.Marshal(Packet{Type: "history_req", Code: a.myCode}); err == nil {
 				_ = dc.SendText(string(raw))
@@ -316,6 +318,10 @@ func (a *App) sendKnownPeersTo(dc *webrtc.DataChannel) {
 	for k, v := range a.onlineSet {
 		online[k] = v
 	}
+	inCall := make(map[string]bool, len(a.callSet))
+	for k, v := range a.callSet {
+		inCall[k] = v
+	}
 	a.mu.Unlock()
 
 	for _, m := range a.getMiembros() {
@@ -325,6 +331,13 @@ func (a *App) sendKnownPeersTo(dc *webrtc.DataChannel) {
 		pkt := Packet{Type: "roster", Sender: m.Nombre, Code: m.Codigo, Avatar: m.Avatar, Online: online[m.Codigo]}
 		if raw, err := json.Marshal(pkt); err == nil {
 			_ = dc.SendText(string(raw))
+		}
+		// Quién de ellos está en la llamada (para pintar su tile con avatar)
+		if inCall[m.Codigo] {
+			cp := Packet{Type: "call", Sender: m.Nombre, Code: m.Codigo, Online: true}
+			if raw, err := json.Marshal(cp); err == nil {
+				_ = dc.SendText(string(raw))
+			}
 		}
 	}
 }
@@ -388,7 +401,7 @@ func (a *App) handlePacket(remoteID string, pkt Packet) {
 		runtime.EventsEmit(a.ctx, "receive_audio", pkt.Audio)
 
 	case "video":
-		runtime.EventsEmit(a.ctx, "receive_video", pkt.Sender, pkt.Video)
+		runtime.EventsEmit(a.ctx, "receive_video", pkt.Sender, pkt.Video, pkt.Kind)
 
 	case "hello":
 		if code == a.myCode {
@@ -429,9 +442,26 @@ func (a *App) handlePacket(remoteID string, pkt Packet) {
 		}
 		runtime.EventsEmit(a.ctx, "peer_info", UserEntry{Name: pkt.Sender, Online: pkt.Online || directo, Avatar: avatar})
 
+	case "call":
+		if code == a.myCode {
+			break
+		}
+		a.mu.Lock()
+		if pkt.Online {
+			a.callSet[code] = true
+		} else {
+			delete(a.callSet, code)
+		}
+		a.mu.Unlock()
+		runtime.EventsEmit(a.ctx, "call_state", pkt.Sender, pkt.Online)
+
+	case "reaction":
+		a.applyReaction(pkt.MsgID, pkt.Sender, pkt.Emoji, pkt.Add)
+
 	case "bye":
 		a.mu.Lock()
 		delete(a.onlineSet, code)
+		delete(a.callSet, code)
 		a.mu.Unlock()
 		runtime.EventsEmit(a.ctx, "peer_info", UserEntry{Name: "", Online: false})
 
@@ -443,18 +473,23 @@ func (a *App) handlePacket(remoteID string, pkt Packet) {
 			a.currentChannelID = a.upsertCanal(code, info.Nombre, info.Subtitulo, info.Icono)
 			a.updateCanalInfo(a.currentChannelID, info.Nombre, info.Subtitulo, info.Icono)
 			a.mu.Unlock()
-			runtime.WindowSetTitle(a.ctx, info.Nombre)
+			a.setTitle(info.Nombre)
 			runtime.EventsEmit(a.ctx, "channel_info", info)
 			runtime.EventsEmit(a.ctx, "channel_switched", code)
 		}
 
 	case "image":
+		if pkt.MsgID != "" && a.messageUIDExists(pkt.MsgID) {
+			break
+		}
 		dataURL := "data:image/webp;base64," + pkt.Image
-		a.saveMessageKind(pkt.Sender, pkt.Image, "image", "")
+		uid := a.saveMessageFull(pkt.Sender, pkt.Image, "image", "", pkt.MsgID, pkt.ReplyTo)
 		runtime.EventsEmit(a.ctx, "receive_message", Message{
-			Sender: pkt.Sender,
-			Kind:   "image",
-			Image:  dataURL,
+			Sender:  pkt.Sender,
+			Kind:    "image",
+			Image:   dataURL,
+			ID:      uid,
+			ReplyTo: pkt.ReplyTo,
 		})
 
 	case "history_req":
@@ -485,12 +520,16 @@ func (a *App) handlePacket(remoteID string, pkt Packet) {
 			a.mu.Unlock()
 			a.upsertMiembro(pkt.Code, pkt.Sender, "")
 		}
-		chatMsg := Message{
-			Sender: pkt.Sender,
-			Text:   pkt.Text,
+		if pkt.MsgID != "" && a.messageUIDExists(pkt.MsgID) {
+			break // ya lo teníamos (reenvío duplicado)
 		}
-		a.saveMessage(pkt.Sender, pkt.Text)
-		runtime.EventsEmit(a.ctx, "receive_message", chatMsg)
+		uid := a.saveMessageFull(pkt.Sender, pkt.Text, "text", "", pkt.MsgID, pkt.ReplyTo)
+		runtime.EventsEmit(a.ctx, "receive_message", Message{
+			Sender:  pkt.Sender,
+			Text:    pkt.Text,
+			ID:      uid,
+			ReplyTo: pkt.ReplyTo,
+		})
 	}
 }
 
@@ -665,10 +704,12 @@ func (a *App) removePeer(id string) {
 	}
 	remaining = len(a.peers)
 	delete(a.onlineSet, id)
+	delete(a.callSet, id)
 	if remaining == 0 {
 		// Sin peers directos ya no llegamos a nadie: nadie está activo.
 		// El directorio (nombres y avatares) se conserva en SQLite.
 		a.onlineSet = make(map[string]bool)
+		a.callSet = make(map[string]bool)
 	}
 	a.mu.Unlock()
 

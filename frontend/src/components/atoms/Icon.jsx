@@ -44,6 +44,19 @@ const PATHS = {
   folder: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
   play: <path d="M7 4.5v15l12-7.5z" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  screen: (
+    <>
+      <rect x="2.5" y="4" width="19" height="12.5" rx="2" />
+      <path d="M8 20.5h8M12 16.5v4" />
+    </>
+  ),
+  reply: <path d="M9.5 5L4 10.5 9.5 16M4 10.5h9a7 7 0 0 1 7 7V19" />,
+  smile: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 14a4 4 0 0 0 7 0M9 9.5h.01M15 9.5h.01" />
+    </>
+  ),
   image: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />

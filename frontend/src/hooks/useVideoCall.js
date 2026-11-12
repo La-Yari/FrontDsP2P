@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { SendVideo } from '../../wailsjs/go/main/App';
 import { EventsOn } from '../../wailsjs/runtime/runtime';
+import { startFrameLoop } from '../utils/frameLoop';
 
 const W = 320; // resolución enviada (ancho)
 const H = 240; // resolución enviada (alto)
 const FPS = 8; // frames por segundo
 const QUALITY = 0.55; // calidad JPEG (0-1)
-const STALE_MS = 2500; // sin frames por este tiempo = esa persona ya no está en video
+const STALE_MS = 2500; // sin frames por este tiempo = esa fuente (cámara o pantalla) ya no emite
 const STORAGE_KEY = 'octopus.cameraId';
 
 // Recordar la última cámara elegida (si el almacenamiento falla, no pasa nada)
@@ -72,12 +73,12 @@ async function openCamera(deviceId) {
 export function useVideoCall({ notify }) {
   const [on, setOn] = useState(false);
   const [stream, setStream] = useState(null);
-  const [remote, setRemote] = useState({}); // { nombre: { src, ts } }
+  // { 'nombre|cam' | 'nombre|screen': { name, kind, src, ts } }
+  const [remote, setRemote] = useState({});
   const [devices, setDevices] = useState([]); // cámaras disponibles
   const [selectedId, setSelectedId] = useState(readSavedId);
-  const timerRef = useRef(null);
   const streamRef = useRef(null);
-  const busyRef = useRef(false); // no encolar frames si el anterior no salió
+  const stopLoopRef = useRef(null);
 
   // Lista de cámaras (los nombres aparecen después de dar permiso)
   const refreshDevices = useCallback(async () => {
@@ -91,10 +92,12 @@ export function useVideoCall({ notify }) {
 
   // Recibir frames de los demás + limpiar a quien dejó de enviar
   useEffect(() => {
-    const off = EventsOn('receive_video', (sender, frame) => {
+    // kind llega vacío desde versiones anteriores: eso es cámara
+    const off = EventsOn('receive_video', (sender, frame, kind) => {
+      const k = kind === 'screen' ? 'screen' : 'cam';
       setRemote((prev) => ({
         ...prev,
-        [sender]: { src: `data:image/jpeg;base64,${frame}`, ts: Date.now() },
+        [`${sender}|${k}`]: { name: sender, kind: k, src: `data:image/jpeg;base64,${frame}`, ts: Date.now() },
       }));
     });
     const gc = setInterval(() => {
@@ -111,7 +114,8 @@ export function useVideoCall({ notify }) {
   }, []);
 
   const stop = useCallback(() => {
-    clearInterval(timerRef.current);
+    stopLoopRef.current?.();
+    stopLoopRef.current = null;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -137,34 +141,15 @@ export function useVideoCall({ notify }) {
         }
         refreshDevices(); // tras el permiso aparecen los nombres de las cámaras
 
-        // <video> oculto + canvas para sacar frames JPEG de la cámara
-        const vid = document.createElement('video');
-        vid.srcObject = media;
-        vid.muted = true;
-        await vid.play();
-        const canvas = document.createElement('canvas');
-        canvas.width = W;
-        canvas.height = H;
-        const ctx = canvas.getContext('2d');
-
-        timerRef.current = setInterval(() => {
-          if (busyRef.current) return;
-          // Recorte centrado 4:3: cualquier cámara (16:9, 4:3, vertical) se ve sin deformarse
-          const vw = vid.videoWidth || W;
-          const vh = vid.videoHeight || H;
-          const scale = Math.max(W / vw, H / vh);
-          const sw = W / scale;
-          const sh = H / scale;
-          ctx.drawImage(vid, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, W, H);
-
-          const b64 = canvas.toDataURL('image/jpeg', QUALITY).split(',')[1];
-          busyRef.current = true;
-          Promise.resolve(SendVideo(b64))
-            .catch(() => {})
-            .finally(() => {
-              busyRef.current = false;
-            });
-        }, 1000 / FPS);
+        // Cada frame sale como JPEG por el canal "video" (kind 'cam')
+        stopLoopRef.current = await startFrameLoop(media, {
+          width: W,
+          height: H,
+          fps: FPS,
+          quality: QUALITY,
+          fit: 'cover',
+          send: (b64) => SendVideo('cam', b64),
+        });
       } catch (err) {
         stop();
         notify(explainError(err), 'error');

@@ -56,6 +56,9 @@ export namespace main {
 	    kind: string;
 	    image?: string;
 	    time?: string;
+	    id?: string;
+	    replyTo?: string;
+	    reactions?: Record<string, Array<string>>;
 	
 	    static createFrom(source: any = {}) {
 	        return new Message(source);
@@ -68,6 +71,9 @@ export namespace main {
 	        this.kind = source["kind"];
 	        this.image = source["image"];
 	        this.time = source["time"];
+	        this.id = source["id"];
+	        this.replyTo = source["replyTo"];
+	        this.reactions = source["reactions"];
 	    }
 	}
 	export class ModVideo {

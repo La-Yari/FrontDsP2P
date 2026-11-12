@@ -6,8 +6,9 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-// SendVideo envía un frame JPEG (base64) a todos los peers por el canal "video"
-func (a *App) SendVideo(frameB64 string) string {
+// SendVideo envía un frame JPEG (base64) a todos los peers por el canal "video".
+// kind: "cam" (cámara) o "screen" (pantalla compartida); ambos usan el mismo canal.
+func (a *App) SendVideo(kind, frameB64 string) string {
 	a.mu.Lock()
 	currentUser := a.username
 	sessions := make([]*PeerSession, 0, len(a.peers))
@@ -20,7 +21,10 @@ func (a *App) SendVideo(frameB64 string) string {
 		return "No peers"
 	}
 
-	data, err := json.Marshal(Packet{Type: "video", Sender: currentUser, Video: frameB64})
+	if kind != "screen" {
+		kind = "" // cámara: sin campo, compatible con versiones anteriores
+	}
+	data, err := json.Marshal(Packet{Type: "video", Sender: currentUser, Video: frameB64, Kind: kind})
 	if err != nil {
 		return "Error"
 	}

@@ -4,7 +4,7 @@ import { Icon, Equalizer } from '../atoms';
  * Dock de voz fijo al pie del sidebar.
  * speakerName: nombre de quien habla (si se conoce) para el subtítulo.
  */
-export function VoicePanel({ call, video, channelName, speakerName, onOpenSettings }) {
+export function VoicePanel({ call, video, screen, channelName, speakerName, onOpenSettings }) {
   const { active, muted, remoteSpeaking, join, leave, toggleMute } = call;
 
   let sub;
@@ -42,6 +42,16 @@ export function VoicePanel({ call, video, channelName, speakerName, onOpenSettin
             aria-pressed={video.on}
           >
             {video.on ? '📷' : '🎥'}
+          </button>
+        )}
+        {screen && (
+          <button
+            className={`icon-btn ${screen.on ? 'icon-btn--danger' : ''}`}
+            onClick={screen.toggle}
+            title={screen.on ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}
+            aria-pressed={screen.on}
+          >
+            <Icon name="screen" size={18} />
           </button>
         )}
         <button className="icon-btn" onClick={onOpenSettings} title="Ajustes de audio y perfil">
