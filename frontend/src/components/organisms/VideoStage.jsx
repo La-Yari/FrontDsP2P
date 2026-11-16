@@ -81,16 +81,7 @@ export function VideoStage({ video, screen, participants = [], avatars = {}, sel
     return () => window.removeEventListener('keydown', onKey);
   }, [theater]);
 
-  // Al EMPEZAR a compartir, tu transmisión se abre sola en grande dentro de la app
-  const wasSharing = useRef(false);
-  useEffect(() => {
-    const sharing = !!(screen?.on && screen.stream);
-    if (sharing && !wasSharing.current) {
-      setFocusKey('screen:self');
-      setTheater(true);
-    }
-    wasSharing.current = sharing;
-  }, [screen?.on, screen?.stream]);
+  // (Se removió el useEffect que abría la transmisión en grande automáticamente al empezar a compartir)
 
   if (!focused && tiles.length === 0) return null;
 

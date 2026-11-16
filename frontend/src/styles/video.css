@@ -148,20 +148,27 @@
 
 .screen-main {
   position: relative;
-  width: min(100%, calc(55vh * 16 / 9));
-  aspect-ratio: 16 / 9;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  aspect-ratio: auto !important;
   margin-inline: auto;
   overflow: hidden;
   background: #000;
   border-radius: 12px;
   cursor: default;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
 }
 .screen-main > video,
 .screen-main > img {
   width: 100%;
   height: 100%;
-  object-fit: contain;       /* nunca recorta la pantalla */
+  object-fit: contain;       /* nunca recorta la pantalla y usa el máximo espacio */
   display: block;
   background: #000;
   transform: none !important; /* sin espejo */
@@ -289,14 +296,18 @@
   inset: 0;
   z-index: 30;
   height: 100%;
+  max-height: 100% !important;
   padding: 16px;
   background: var(--color-surface-chat, #0a1017);
+  display: flex;
+  flex-direction: column;
 }
 .video-stage[data-theater="true"] .screen-main {
   flex: 1 1 auto;
   min-height: 0;
-  width: 100%;
-  aspect-ratio: auto;
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: auto !important;
   cursor: default;
 }
 .video-stage[data-theater="true"] .video-strip { flex: 0 0 auto; }
